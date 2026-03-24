@@ -1,0 +1,20 @@
+name: Update Release Asset
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'allegro-gmail-filters.xml'
+  workflow_dispatch:
+
+jobs:
+  upload-asset:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upload to release
+        run: gh release upload v1.0.0 allegro-gmail-filters.xml --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
