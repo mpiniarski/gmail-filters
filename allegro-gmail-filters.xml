@@ -1,25 +1,40 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <feed xmlns='http://www.w3.org/2005/Atom' xmlns:apps='http://schemas.google.com/apps/2006'>
-	<title>Mail Filters</title>
-	<entry>
-		<category term='filter'></category>
-		<title>Mail Filter</title>
-		<apps:property name='from' value='@allegro.pl OR @allegromail.pl'/>
-		<apps:property name='label' value='Allegro'/>
-		<apps:property name='shouldAlwaysMarkAsRead' value='false'/>
-		<apps:property name='shouldArchive' value='false'/>
-		<apps:property name='sizeOperator' value='s_sl'/>
-		<apps:property name='sizeUnit' value='s_smb'/>
-	</entry>
-	<entry>
-		<category term='filter'></category>
-		<title>Mail Filter</title>
-		<apps:property name='from' value='@allegro.pl OR @allegromail.pl'/>
-		<apps:property name='doesNotHaveTheWord' value='dostawa wysyłka dostarczona odebrana zakup potwierdzenie &quot;allegro lokalnie&quot;'/>
-		<apps:property name='label' value='Allegro'/>
-		<apps:property name='shouldAlwaysMarkAsRead' value='true'/>
-		<apps:property name='shouldArchive' value='true'/>
-		<apps:property name='sizeOperator' value='s_sl'/>
-		<apps:property name='sizeUnit' value='s_smb'/>
-	</entry>
+  <title>Mail Filters</title>
+
+  <!-- Filter 1: Label ALL emails from Allegro -->
+  <entry>
+    <category term='filter'></category>
+    <title>Mail Filter</title>
+    <apps:property name='from' value='@allegro.pl OR @allegromail.pl'/>
+    <apps:property name='label' value='Allegro'/>
+    <apps:property name='sizeOperator' value='s_sl'/>
+    <apps:property name='sizeUnit' value='s_smb'/>
+  </entry>
+
+  <!-- Filter 2: Archive + mark read Allegro emails that are NOT important.
+       Important emails kept in inbox contain ANY of:
+         "czeka na odbior"          - package at pickup point / parcel locker
+         "gotowa do odbioru"        - redirected parcel ready to collect
+         "czeka na Ciebie"          - InPost: parcel waiting for you
+         "czekaja na Ciebie"        - InPost: multiple parcels waiting
+         "przypomnienie o odbiorze" - reminder before paczkomat expires
+         zwrot                      - return confirmation OR refund received
+         oplacenie                  - payment reminder
+         "nie udala"                - failed payment alert
+         anulowany                  - order cancelled
+       Everything else is archived: purchase confirmations, shipping-in-transit,
+       invoices, promotions, InPost dispatch notifications, etc. -->
+  <entry>
+    <category term='filter'></category>
+    <title>Mail Filter</title>
+    <apps:property name='from' value='@allegro.pl OR @allegromail.pl'/>
+    <apps:property name='doesNotHaveTheWord' value='&quot;czeka na odbiór&quot; &quot;gotowa do odbioru&quot; &quot;czeka na Ciebie&quot; &quot;czekają na Ciebie&quot; &quot;przypomnienie o odbiorze&quot; zwrot opłacenie &quot;nie udała&quot; anulowany'/>
+    <apps:property name='label' value='Allegro'/>
+    <apps:property name='shouldAlwaysMarkAsRead' value='true'/>
+    <apps:property name='shouldArchive' value='true'/>
+    <apps:property name='sizeOperator' value='s_sl'/>
+    <apps:property name='sizeUnit' value='s_smb'/>
+  </entry>
+
 </feed>
