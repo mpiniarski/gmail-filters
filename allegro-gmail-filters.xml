@@ -12,19 +12,8 @@
     <apps:property name='sizeUnit' value='s_smb'/>
   </entry>
 
-  <!-- Filter 2: Archive + mark read Allegro emails that are NOT important.
-       Important emails kept in inbox contain ANY of:
-         "czeka na odbior"          - package at pickup point / parcel locker
-         "gotowa do odbioru"        - redirected parcel ready to collect
-         "czeka na Ciebie"          - InPost: parcel waiting for you
-         "czekaja na Ciebie"        - InPost: multiple parcels waiting
-         "przypomnienie o odbiorze" - reminder before paczkomat expires
-         zwrot                      - return confirmation OR refund received
-         oplacenie                  - payment reminder
-         "nie udala"                - failed payment alert
-         anulowany                  - order cancelled
-       Everything else is archived: purchase confirmations, shipping-in-transit,
-       invoices, promotions, InPost dispatch notifications, etc. -->
+  <!-- Filter 2: Archive + mark read everything except actionable emails.
+       Kept: delivery ready, pickup reminders, returns, refunds, payment alerts, cancellations. -->
   <entry>
     <category term='filter'></category>
     <title>Mail Filter</title>
