@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<feed xmlns='http://www.w3.org/2005/Atom' xmlns:apps='http://schemas.google.com/apps/2006'>
+  <title>Mail Filters</title>
+  <!-- Filter 1: Label ALL emails from AliExpress -->
+  <entry>
+    <category term='filter'></category>
+    <title>Mail Filter</title>
+    <apps:property name='from' value='@aliexpress.com OR @notice.aliexpress.com'/>
+    <apps:property name='label' value='Aliexpress'/>
+    <apps:property name='sizeOperator' value='s_sl'/>
+    <apps:property name='sizeUnit' value='s_smb'/>
+  </entry>
+  <!-- Filter 2: Archive + mark read everything except pickup ready emails -->
+  <entry>
+    <category term='filter'></category>
+    <title>Mail Filter</title>
+    <apps:property name='from' value='@aliexpress.com OR @notice.aliexpress.com'/>
+    <apps:property name='doesNotHaveTheWord' value='&quot;ready for pickup&quot;'/>
+    <apps:property name='label' value='Aliexpress'/>
+    <apps:property name='shouldAlwaysMarkAsRead' value='true'/>
+    <apps:property name='shouldArchive' value='true'/>
+    <apps:property name='sizeOperator' value='s_sl'/>
+    <apps:property name='sizeUnit' value='s_smb'/>
+  </entry>
+</feed>
