@@ -1,20 +1,149 @@
+# - Generated line: merge a commit that bumps "version" in package.json → CI creates GitHub release v{version}
+#   → release event → assets upload. Tag always matches package.json (enforced on upload).
+# - Legacy 100/: push changes under 100/ → upload to fixed release v1.0.0 (no version bump required).
 name: Update Release Asset
 
 on:
   push:
     branches: [main]
+    paths:
+      - "100/**"
+      - "package.json"
+  release:
+    types: [published]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "v1.0.0 = upload tracked 100/; any other tag = generate public/*.xml and upload there"
+        required: true
+        type: string
 
 jobs:
-  upload-asset:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      hundred: ${{ steps.scan.outputs.hundred }}
+      version_bump: ${{ steps.scan.outputs.version_bump }}
+      version: ${{ steps.scan.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Scan push for 100/ or version bump
+        id: scan
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" != "push" ]; then
+            echo "hundred=false" >> "$GITHUB_OUTPUT"
+            echo "version_bump=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if ! git rev-parse HEAD^ >/dev/null 2>&1; then
+            echo "hundred=false" >> "$GITHUB_OUTPUT"
+            echo "version_bump=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          FILES=$(git diff --name-only HEAD^ HEAD)
+          if echo "$FILES" | grep -qE '^100/'; then echo "hundred=true" >> "$GITHUB_OUTPUT"; else echo "hundred=false" >> "$GITHUB_OUTPUT"; fi
+          NEW=$(jq -r .version package.json)
+          OLD=$(git show HEAD^:package.json 2>/dev/null | jq -r .version || echo "")
+          if [ "$NEW" != "$OLD" ]; then
+            echo "version_bump=true" >> "$GITHUB_OUTPUT"
+            echo "version=$NEW" >> "$GITHUB_OUTPUT"
+          else
+            echo "version_bump=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # When package.json version changes on main, open a GitHub release (triggers upload-generated).
+  create-release-if-version-bumped:
+    needs: detect
+    if: github.event_name == 'push' && needs.detect.outputs.version_bump == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      # gh release create --generate-notes runs git; without checkout there is no .git and it fails.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Create release v${{ needs.detect.outputs.version }}
+        run: |
+          set -euo pipefail
+          TAG="v${{ needs.detect.outputs.version }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists — skipping create (re-upload manually if needed)"
+            exit 0
+          fi
+          gh release create "$TAG" --title "$TAG" --generate-notes
+
+  # v1.0.0 “100” assets: push that touches 100/ on main (or manual dispatch).
+  upload-100:
+    needs: detect
+    if: |
+      (github.event_name == 'push' && needs.detect.outputs.hundred == 'true') ||
+      (github.event_name == 'workflow_dispatch' && inputs.tag == 'v1.0.0')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
-      - name: Upload to release
+      - name: Upload 100/ to v1.0.0
         run: |
-          mapfile -t assets < <(git ls-files public/)
+          set -euo pipefail
+          mapfile -t assets < <(git ls-files "100/")
+          if [ ${#assets[@]} -eq 0 ]; then
+            echo "No tracked files under 100/"
+            exit 1
+          fi
           gh release upload v1.0.0 "${assets[@]}" --clobber
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Semver releases (non v1.0.0): generated XML. Runs on release published (including one created above) or manual dispatch.
+  upload-generated:
+    if: |
+      (github.event_name == 'release' && github.event.release.tag_name != 'v1.0.0') ||
+      (github.event_name == 'workflow_dispatch' && inputs.tag != 'v1.0.0')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - name: Require release tag to match package.json version
+        if: github.event_name == 'release'
+        run: |
+          set -euo pipefail
+          pkg=$(node -e "console.log(JSON.parse(require('fs').readFileSync('package.json','utf8')).version)")
+          tag="${{ github.event.release.tag_name }}"
+          want="v${pkg}"
+          if [ "$tag" != "$want" ]; then
+            echo "Release tag must be $want (from package.json version), got $tag"
+            exit 1
+          fi
+      - name: Generate and upload to release tag
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "release" ]; then
+            TAG="${{ github.event.release.tag_name }}"
+          else
+            TAG="${{ inputs.tag }}"
+          fi
+
+          npm ci
+          npm run generate
+
+          mapfile -t assets < <(find public -type f -name "*.xml" | sort)
+          if [ ${#assets[@]} -eq 0 ]; then
+            echo "No XML files in public/ after generate"
+            exit 1
+          fi
+
+          gh release upload "$TAG" "${assets[@]}" --clobber
