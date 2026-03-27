@@ -1,0 +1,43 @@
+# Upload tracked files under public/ to a GitHub Release when public/ or .release-tag changes.
+# Create the release once (empty is fine), or uncomment the create step below.
+
+name: Publish public XML
+
+on:
+  push:
+    branches: [main]
+    paths: ["public/**", ".release-tag"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g. v1.2.0). Leave empty to use .release-tag."
+        required: false
+        type: string
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upload public/*.xml to release
+        run: |
+          set -euo pipefail
+          TAG_INPUT="${{ inputs.tag }}"
+          if [ -n "$TAG_INPUT" ]; then
+            TAG="$TAG_INPUT"
+          else
+            TAG=$(tr -d ' \n\r\t' < .release-tag)
+          fi
+          mapfile -t assets < <(git ls-files "public/")
+          if [ ${#assets[@]} -eq 0 ]; then
+            echo "No tracked files under public/"
+            exit 1
+          fi
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --title "$TAG" --notes ""
+          fi
+          gh release upload "$TAG" "${assets[@]}" --clobber
