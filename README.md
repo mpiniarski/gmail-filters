@@ -1,14 +1,14 @@
 # Gmail filter XML
 
-Tracked Gmail “Settings → Filters → Import” files live in **`public/`**. Semver **GitHub Releases** get the same files as uploadable assets.
+Tracked Gmail “Settings → Filters → Import” files live in **`public/`**. CI attaches them to the GitHub Release for the version in **`RELEASE_VERSION`**.
 
-## Release tag
+## Version and releases
 
-The workflow reads **`/.release-tag`**: a single line, e.g. `v1.2.0`. When you change exports under **`public/`**, commit those changes; if the release should target a new tag, update **`.release-tag`** in the same commit (or earlier).
+**`RELEASE_VERSION`** is one line: either **`1.2.3`** or **`v1.2.3`**. If there is no leading **`v`**, the workflow adds it for the GitHub release tag.
 
-On push to **`main`** (only when **`public/**` or `.release-tag`** changes), CI uploads every tracked path under **`public/`** to that release, creating it if it does not exist yet.
+When **`public/**`** or **`RELEASE_VERSION`** changes on **`main`**, the workflow uploads every tracked file under **`public/`** to that release (and creates the release if needed).
 
-You can re-run uploads manually: **Actions → Publish public XML → Run workflow**, optionally overriding the tag.
+Re-run anytime: **Actions → Publish public XML → Run workflow** (still uses **`RELEASE_VERSION`** only).
 
 ## Build source
 
